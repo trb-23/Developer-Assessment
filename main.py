@@ -53,8 +53,6 @@ def create_default_tables():
     db_connection.commit()
 
 def add_customer(name, balance = 0):
-    # Generate random account number
-    # Sanitize inputs
     account = generate_random_account_number()
     while True:
         if account_exists(account):
@@ -82,7 +80,6 @@ def update_customer(account, new_name):
     db_connection.commit()
 
 def delete_customer(account):
-    # Sanitize input
     values = (account, )
 
     query = '''
@@ -92,8 +89,6 @@ def delete_customer(account):
     db_connection.commit()
 
 def transact(account, date, amount, DC = "D"):
-    # Sanitize inputs
-    # 'reference' is AUTOINCREMENT and gets added automatically
     values = (amount, account)
     operator = "+" if DC == "D" else "-"
     query = f'''
@@ -218,7 +213,7 @@ def display_transactions(*args):
         transaction_tree.insert("", tk.END, values=row)
 
 def generate_random_account_number():
-    characters = string.ascii_uppercase + string.digits  # Use uppercase letters and digits
+    characters = string.ascii_uppercase + string.digits
     account_number = ''.join(random.choices(characters, k=15))
     return account_number
 
@@ -232,7 +227,6 @@ def new_customer_popup():
     popup.geometry("600x400")
 
     def add_customer_command():
-        # Validate input
         new_name = new_customer_name_entry.get()
         add_customer(new_name)
         new_customer_name_entry.delete(0, tk.END)
@@ -313,7 +307,6 @@ def delete_customer_popup():
     account_values = tk.StringVar(value=[])
 
     def delete_customer_command():
-        # update_customer(edit_customer_search_entry.get(), edit_customer_new_name_entry.get())
         delete_customer(delete_customer_search_entry.get())
         display_customers()
         delete_customer_search_entry.delete(0, tk.END)
