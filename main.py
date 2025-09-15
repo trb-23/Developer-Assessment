@@ -6,6 +6,7 @@ from datetime import datetime
 import random
 import string
 from tkcalendar import DateEntry
+from sys import exit
 
 logger = getLogger(__name__)
 logger.setLevel(DEBUG)
@@ -17,10 +18,7 @@ console_handler = StreamHandler()
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
-db_connection = sql.connect("database.db")
-db_cursor = db_connection.cursor()
-
-
+DB = "database.db"
 
 def create_default_tables():
     query_customers = '''
@@ -30,11 +28,6 @@ def create_default_tables():
             balance DOUBLE
         )
     '''
-    db_cursor.execute(query_customers)
-    logger.debug("'Customers' table successfully created/connected")
-    db_cursor.execute('CREATE INDEX IF NOT EXISTS idx_customers_account ON Customers(account)')
-    db_cursor.execute('CREATE INDEX IF NOT EXISTS idx_customers_name ON Customers(name)')
-
     query_transactions = '''
         CREATE TABLE IF NOT EXISTS Transactions (
             number INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,12 +38,23 @@ def create_default_tables():
             FOREIGN KEY (account) REFERENCES Customers(account)
         )
     '''
-    db_cursor.execute(query_transactions)
-    logger.debug("'Transactions' table successfully created/connected")
-    db_cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_number ON Transactions(number)')
-    db_cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_account ON Transactions(account)')
+    with sql.connect(DB) as db_connection:
+        db_cursor = db_connection.cursor()
+        try:
+            db_cursor.execute(query_customers)
+            logger.debug("'Customers' table successfully created/connected")
+            db_cursor.execute('CREATE INDEX IF NOT EXISTS idx_customers_account ON Customers(account)')
+            db_cursor.execute('CREATE INDEX IF NOT EXISTS idx_customers_name ON Customers(name)')
 
-    db_connection.commit()
+            db_cursor.execute(query_transactions)
+            logger.debug("'Transactions' table successfully created/connected")
+            db_cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_number ON Transactions(number)')
+            db_cursor.execute('CREATE INDEX IF NOT EXISTS idx_transactions_account ON Transactions(account)')
+
+            db_connection.commit()
+        except sql.Error as e:
+            logger.error(f"Default tables creation failed: {e}")
+            exit(1)
 
 def add_customer(name, balance = 0):
     account = generate_random_account_number()
@@ -61,51 +65,69 @@ def add_customer(name, balance = 0):
             break
 
     values = (account, name, balance)
-
     query = '''
         INSERT INTO Customers (account, name, balance)
         VALUES (?, ?, ?)
     '''
-
-    db_cursor.execute(query, values)
-    logger.debug(f"Added {name}, account number: {account}, balance = {balance}")
-    db_connection.commit()
+    with sql.connect(DB) as db_connection:
+        db_cursor = db_connection.cursor()
+        try:
+            db_cursor.execute(query, values)
+            logger.info(f"Added {name}, account number: {account}, balance = {balance}")
+            db_connection.commit()
+        except sql.Error as e:
+            logger.error(f"Failed to add account {account}: {e}")
 
 def update_customer(account, new_name):
     values = (new_name, account)
-
     query = f"UPDATE Customers SET name = ? WHERE account = ?"
-
-    db_cursor.execute(query, values)
-    db_connection.commit()
+    with sql.connect(DB) as db_connection:
+        db_cursor = db_connection.cursor()
+        try:
+            db_cursor.execute(query, values)
+            logger.info(f"Account {account} name updated to {new_name}")
+            db_connection.commit()
+        except sql.Error as e:
+            logger.error(f"Failed to update account {account}: {e}")
 
 def delete_customer(account):
     values = (account, )
-
     query = '''
         DELETE FROM Customers WHERE account = ?
     '''
-    db_cursor.execute(query, values)
-    db_connection.commit()
+    with sql.connect(DB) as db_connection:
+        db_cursor = db_connection.cursor()
+        try:
+            db_cursor.execute(query, values)
+            logger.info(f"Account {account} deleted")
+            db_connection.commit()
+        except sql.Error as e:
+            logger.error(f"Failed to delete account {account}: {e}")
 
 def transact(account, date, amount, DC = "D"):
-    values = (amount, account)
-    operator = "+" if DC == "D" else "-"
-    query = f'''
-        UPDATE Customers SET balance = balance {operator} ? WHERE account = ?
-    '''
-    db_cursor.execute(query, values)
+    with sql.connect(DB) as db_connection:
+        db_cursor = db_connection.cursor()
+        try:
+            values = (amount, account)
+            operator = "+" if DC == "D" else "-"
+            query = f'''
+                UPDATE Customers SET balance = balance {operator} ? WHERE account = ?
+            '''
+            db_cursor.execute(query, values)
+            operator_string = "debited from" if DC == "D" else "credited to"
+            logger.info(f"{amount} {operator_string} {account}")
 
-    values = (account, date, amount, DC)
-    query = '''
-        INSERT INTO Transactions (account, date, amount, DC)
-        VALUES (?, ?, ?, ?)
-    '''
+            values = (account, date, amount, DC)
+            query = '''
+                INSERT INTO Transactions (account, date, amount, DC)
+                VALUES (?, ?, ?, ?)
+            '''
+            db_cursor.execute(query, values)
+            logger.debug(f"{amount} {operator_string} {account} transaction saved")
 
-    db_cursor.execute(query, values)
-    DC_string = "debited from" if DC == "D" else "credited to"
-    logger.info(f"{amount} {DC_string} {account}")
-    db_connection.commit()
+            db_connection.commit()
+        except sql.Error as e:
+            logger.error(f"Failed to load transaction: {e}")
 
 def display_customers(*args):
     for row in customer_tree.get_children():
@@ -145,10 +167,12 @@ def display_customers(*args):
     if sort_string:
         query = query + " " + sort_string
 
-    if search_string:
-        db_cursor.execute(query, ('%' + search_term + '%', '%' + search_term + '%'))
-    else:
-        db_cursor.execute(query)
+    with sql.connect(DB) as db_connection:
+        db_cursor = db_connection.cursor()
+        if search_string:
+            db_cursor.execute(query, ('%' + search_term + '%', '%' + search_term + '%'))
+        else:
+            db_cursor.execute(query)
 
     customer_columns = [description[0] for description in db_cursor.description]
     customer_tree["columns"] = customer_columns
@@ -197,10 +221,12 @@ def display_transactions(*args):
     if sort_string:
         query = query + " " + sort_string
 
-    if search_string:
-        db_cursor.execute(query, ('%' + search_term + '%', '%' + search_term + '%', '%' + search_term + '%'))
-    else:
-        db_cursor.execute(query)
+    with sql.connect(DB) as db_connection:
+        db_cursor = db_connection.cursor()
+        if search_string:
+            db_cursor.execute(query, ('%' + search_term + '%', '%' + search_term + '%', '%' + search_term + '%'))
+        else:
+            db_cursor.execute(query)
 
     transaction_columns = [description[0] for description in db_cursor.description]
     transaction_tree["columns"] = transaction_columns
@@ -218,8 +244,10 @@ def generate_random_account_number():
     return account_number
 
 def account_exists(account):
-    db_cursor.execute("SELECT 1 FROM Customers WHERE account = ?", (account, ))
-    return db_cursor.fetchone() is not None
+    with sql.connect(DB) as db_connection:
+        db_cursor = db_connection.cursor()
+        db_cursor.execute("SELECT 1 FROM Customers WHERE account = ?", (account, ))
+        return db_cursor.fetchone() is not None
 
 def new_customer_popup():
     popup = tk.Toplevel(root)
@@ -258,7 +286,6 @@ def edit_customer_popup():
 
     def on_entry_text_change(*args):
         search_term = edit_customer_search_var.get()
-
         if not search_term:
             account_values.set([])
             return
@@ -266,8 +293,9 @@ def edit_customer_popup():
         query = '''
             SELECT * FROM Customers WHERE account LIKE ? OR name LIKE ?
         '''
-
-        db_cursor.execute(query, ('%' + search_term + '%', '%' + search_term + '%'))
+        with sql.connect(DB) as db_connection:
+            db_cursor = db_connection.cursor()
+            db_cursor.execute(query, ('%' + search_term + '%', '%' + search_term + '%'))
         rows = db_cursor.fetchall()
         account_values.set([f"{row[1]} - {row[0]}" for row in rows])
 
@@ -313,7 +341,6 @@ def delete_customer_popup():
 
     def on_entry_text_change(*args):
         search_term = delete_customer_search_var.get()
-
         if not search_term:
             account_values.set([])
             return
@@ -321,8 +348,9 @@ def delete_customer_popup():
         query = '''
             SELECT * FROM Customers WHERE account LIKE ? OR name LIKE ?
         '''
-
-        db_cursor.execute(query, ('%' + search_term + '%', '%' + search_term + '%'))
+        with sql.connect(DB) as db_connection:
+            db_cursor = db_connection.cursor()
+            db_cursor.execute(query, ('%' + search_term + '%', '%' + search_term + '%'))
         rows = db_cursor.fetchall()
         account_values.set([f"{row[1]} - {row[0]}" for row in rows])
 
@@ -367,8 +395,9 @@ def new_transaction_popup():
         query = '''
             SELECT * FROM Customers WHERE account LIKE ? OR name LIKE ?
         '''
-
-        db_cursor.execute(query, ('%' + search_term + '%', '%' + search_term + '%'))
+        with sql.connect(DB) as db_connection:
+            db_cursor = db_connection.cursor()
+            db_cursor.execute(query, ('%' + search_term + '%', '%' + search_term + '%'))
         rows = db_cursor.fetchall()
         account_values.set([f"{row[1]} - {row[0]}" for row in rows])
 
@@ -493,5 +522,3 @@ display_customers()
 display_transactions()
 
 root.mainloop()
-
-db_connection.close()
