@@ -84,6 +84,7 @@ def add_customer(name:str, balance:float = 0.0) -> None:
     while True:
         if account_exists(account):
             account = generate_random_account_number()
+            logger.debug("Duplicate hit, generating new account number.")
         else:
             break
 
