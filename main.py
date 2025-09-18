@@ -335,7 +335,7 @@ def new_customer_popup() -> None:
         popup.destroy()
     popup.protocol("WM_DELETE_WINDOW", on_close)
 
-    def add_customer_command():
+    def add_customer_command(*args):
         new_name = new_customer_name_entry.get()
         add_customer(new_name)
         new_customer_name_entry.delete(0, tk.END)
@@ -344,6 +344,7 @@ def new_customer_popup() -> None:
 
     new_customer_name_label = ttk.Label(popup, text="New Customer Name:")
     new_customer_name_entry = ttk.Entry(popup)
+    new_customer_name_entry.bind("<Return>", add_customer_command)
     new_customer_button = ttk.Button(popup, text="Add New Customer", command=add_customer_command)
 
     new_customer_name_label.pack(pady=10)
