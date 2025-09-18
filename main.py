@@ -326,6 +326,13 @@ def new_customer_popup() -> None:
     popup = tk.Toplevel(root)
     popup.title("Add New Customer")
     popup.geometry("600x400")
+    popup.transient(root)
+    popup.grab_set()
+
+    def on_close():
+        popup.grab_release()
+        popup.destroy()
+    popup.protocol("WM_DELETE_WINDOW", on_close)
 
     def add_customer_command():
         new_name = new_customer_name_entry.get()
@@ -343,6 +350,7 @@ def new_customer_popup() -> None:
     new_customer_button.pack()
 
     new_customer_name_entry.focus_set()
+    popup.wait_window()
 
 def edit_customer_popup() -> None:
     '''
@@ -351,6 +359,13 @@ def edit_customer_popup() -> None:
     popup = tk.Toplevel(root)
     popup.title("Edit Customer")
     popup.geometry("600x400")
+    popup.transient(root)
+    popup.grab_set()
+
+    def on_close():
+        popup.grab_release()
+        popup.destroy()
+    popup.protocol("WM_DELETE_WINDOW", on_close)
 
     account_values = tk.StringVar(value=[])
 
@@ -412,6 +427,13 @@ def delete_customer_popup() -> None:
     popup = tk.Toplevel(root)
     popup.title("Delete Customer")
     popup.geometry("600x400")
+    popup.transient(root)
+    popup.grab_set()
+
+    def on_close():
+        popup.grab_release()
+        popup.destroy()
+    popup.protocol("WM_DELETE_WINDOW", on_close)
 
     account_values = tk.StringVar(value=[])
 
@@ -468,6 +490,13 @@ def new_transaction_popup() -> None:
     popup = tk.Toplevel(root)
     popup.title("New Transaction")
     popup.geometry("600x600")
+    popup.transient(root)
+    popup.grab_set()
+
+    def on_close():
+        popup.grab_release()
+        popup.destroy()
+    popup.protocol("WM_DELETE_WINDOW", on_close)
 
     account_values = tk.StringVar(value=[])
 
@@ -526,6 +555,8 @@ def new_transaction_popup() -> None:
     new_transaction_account_entry.pack()
     new_transaction_account_listbox.pack(pady=15, fill="x")
     new_transaction_button.pack()
+
+    popup.wait_window()
 
 
 
