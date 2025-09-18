@@ -20,7 +20,23 @@ logger.addHandler(console_handler)
 
 DB = "database.db"
 
-def create_default_tables():
+def CREATE_DEFAULT_TABLES() -> None:
+    '''
+    Creates the following tables and indexes if they do not exist already:
+
+    Table: Customers:
+        account     CHAR(15) PRIMARY KEY
+        name        VARCHAR(30)
+        balance     DOUBLE
+
+    Table: Transactions:
+        number      INTEGER PRIMARY KEY AUTOINCREMENT
+        account     CHAR(15)
+        date        DATETIME
+        amount      DOUBLE
+        DC          CHAR(1) CHECK(DC IN ('D', 'C'))
+        FOREIGN KEY (account) REFERENCES Customers(account)
+    '''
     query_customers = '''
         CREATE TABLE IF NOT EXISTS Customers (
             account CHAR(15) PRIMARY KEY,
@@ -56,7 +72,14 @@ def create_default_tables():
             logger.error(f"Default tables creation failed: {e}")
             exit(1)
 
-def add_customer(name, balance = 0):
+def add_customer(name:str, balance:float = 0.0) -> None:
+    '''
+    Adds customer.
+
+    Args:
+        name(str): Name of the customer
+        balance(float, optional): Initial balance of the customer account
+    '''
     account = generate_random_account_number()
     while True:
         if account_exists(account):
@@ -78,7 +101,14 @@ def add_customer(name, balance = 0):
         except sql.Error as e:
             logger.error(f"Failed to add account {account}: {e}")
 
-def update_customer(account, new_name):
+def update_customer(account:str, new_name:str) -> None:
+    '''
+    Update customer name.
+
+    Args:
+        account(str): Account number of customer to update.
+        new_name(str): Updated name corresponding to account number.
+    '''
     values = (new_name, account)
     query = f"UPDATE Customers SET name = ? WHERE account = ?"
     with sql.connect(DB) as db_connection:
@@ -90,7 +120,13 @@ def update_customer(account, new_name):
         except sql.Error as e:
             logger.error(f"Failed to update account {account}: {e}")
 
-def delete_customer(account):
+def delete_customer(account:str) -> None:
+    '''
+    Delete customer.
+
+    Args:
+        account(str): Account number of customer to be deleted.
+    '''
     values = (account, )
     query = '''
         DELETE FROM Customers WHERE account = ?
@@ -104,7 +140,16 @@ def delete_customer(account):
         except sql.Error as e:
             logger.error(f"Failed to delete account {account}: {e}")
 
-def transact(account, date, amount, DC = "D"):
+def transact(account:str, date:datetime.date, amount:float, DC:str = "D") -> None:
+    '''
+    Add transaction.
+
+    Args:
+        account(str): Account number to debit/credit.
+        date(datetime.date): Date of the transaction.
+        amount(float): Amount to debit/credit.
+        DC(str): Indicates debit('D') or credit('C').
+    '''
     with sql.connect(DB) as db_connection:
         db_cursor = db_connection.cursor()
         try:
@@ -129,7 +174,12 @@ def transact(account, date, amount, DC = "D"):
         except sql.Error as e:
             logger.error(f"Failed to load transaction: {e}")
 
-def display_customers(*args):
+def display_customers(*args) -> None:
+    '''
+    Refresh customer display portal.
+
+    The 'Search:' entry and 'Sort:' comboboxes are taken into account for the refresh.
+    '''
     for row in customer_tree.get_children():
         customer_tree.delete(row)
 
@@ -186,7 +236,12 @@ def display_customers(*args):
     for row in rows:
         customer_tree.insert("", tk.END, values=row)
 
-def display_transactions(*args):
+def display_transactions(*args) -> None:
+    '''
+    Refresh transactions display portal.
+
+    The 'Search:' entry and 'Sort:' comboboxes are taken into account for the refresh.
+    '''
     for row in transaction_tree.get_children():
         transaction_tree.delete(row)
 
@@ -238,18 +293,36 @@ def display_transactions(*args):
     for row in rows:
         transaction_tree.insert("", tk.END, values=row)
 
-def generate_random_account_number():
+def generate_random_account_number() -> str:
+    '''
+    Generate a random 15-character alphanumeric account number.
+
+    Returns:
+        str: Generated account number.
+    '''
     characters = string.ascii_uppercase + string.digits
     account_number = ''.join(random.choices(characters, k=15))
     return account_number
 
-def account_exists(account):
+def account_exists(account:str) -> bool:
+    '''
+    Checks if account exists in Customers database.
+
+    Args:
+        account(str): Account number to check.
+
+    Returns:
+        bool: True if account exists, False otherwise.
+    '''
     with sql.connect(DB) as db_connection:
         db_cursor = db_connection.cursor()
         db_cursor.execute("SELECT 1 FROM Customers WHERE account = ?", (account, ))
         return db_cursor.fetchone() is not None
 
-def new_customer_popup():
+def new_customer_popup() -> None:
+    '''
+    Generates the 'Add New Customer' popup window.
+    '''
     popup = tk.Toplevel(root)
     popup.title("Add New Customer")
     popup.geometry("600x400")
@@ -271,9 +344,12 @@ def new_customer_popup():
 
     new_customer_name_entry.focus_set()
 
-def edit_customer_popup():
+def edit_customer_popup() -> None:
+    '''
+    Generates the 'Edit Customer' popup window.
+    '''
     popup = tk.Toplevel(root)
-    popup.title("Edit customer")
+    popup.title("Edit Customer")
     popup.geometry("600x400")
 
     account_values = tk.StringVar(value=[])
@@ -327,9 +403,14 @@ def edit_customer_popup():
     edit_customer_new_name_entry.pack()
     edit_customer_button.pack(pady=10)
 
-def delete_customer_popup():
+    popup.wait_window()
+
+def delete_customer_popup() -> None:
+    '''
+    Generates the 'Delete Customer' popup window.
+    '''
     popup = tk.Toplevel(root)
-    popup.title("Delete customer")
+    popup.title("Delete Customer")
     popup.geometry("600x400")
 
     account_values = tk.StringVar(value=[])
@@ -378,7 +459,12 @@ def delete_customer_popup():
     delete_customer_search_listbox.pack(fill="x")
     delete_customer_button.pack(pady=10)
 
-def new_transaction_popup():
+    popup.wait_window()
+
+def new_transaction_popup() -> None:
+    '''
+    Generates the 'New Transaction' popup window.
+    '''
     popup = tk.Toplevel(root)
     popup.title("New Transaction")
     popup.geometry("600x600")
@@ -443,7 +529,7 @@ def new_transaction_popup():
 
 
 
-create_default_tables()
+CREATE_DEFAULT_TABLES()
 
 root = tk.Tk()
 root.title("Developer Assessment")
