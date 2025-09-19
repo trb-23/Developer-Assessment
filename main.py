@@ -72,6 +72,37 @@ def CREATE_DEFAULT_TABLES() -> None:
             logger.error(f"Default tables creation failed: {e}")
             exit(1)
 
+def validate_customer_name(name:str) -> None:
+    '''
+    Validates that customer name is of type VARCHAR(30).
+
+    Args:
+        name(str): Customer name to validate.
+
+    Raises:
+        TypeError: If name is not a string.
+        ValueError: If name exceeds 30 characters.
+    '''
+    if not isinstance(name, str):
+        raise TypeError(f"{name} is not a valid string.")
+    if len(name) > 30:
+        raise ValueError(f"Name cannot exceed 30 characters. Name is {len(name)} characters.")
+    
+def validate_amount(amount:float) -> None:
+    '''
+    Validates that balance is of type DOUBLE.
+
+    Args:
+        amount(float): Balance to validate.
+
+    Raises:
+        TypeError: If amount is not a valid float.
+    '''
+    try:
+        balance_value = float(amount)
+    except (TypeError, ValueError):
+        raise TypeError(f"{amount} is not a valid float.")
+
 def add_customer(name:str, balance:float = 0.0) -> None:
     '''
     Adds customer.
@@ -80,6 +111,20 @@ def add_customer(name:str, balance:float = 0.0) -> None:
         name(str): Name of the customer
         balance(float, optional): Initial balance of the customer account
     '''
+    try:
+        validate_customer_name(name)
+    except TypeError as e:
+        logger.error(e)
+        return
+    except ValueError as e:
+        logger.error(e)
+        return
+    try:
+        validate_amount(balance)
+    except TypeError as e:
+        logger.error(e)
+        return
+
     account = generate_random_account_number()
     while True:
         if account_exists(account):
@@ -110,6 +155,15 @@ def update_customer(account:str, new_name:str) -> None:
         account(str): Account number of customer to update.
         new_name(str): Updated name corresponding to account number.
     '''
+    try:
+        validate_customer_name(new_name)
+    except TypeError as e:
+        logger.error(e)
+        return
+    except ValueError as e:
+        logger.error(e)
+        return
+    
     values = (new_name, account)
     query = f"UPDATE Customers SET name = ? WHERE account = ?"
     with sql.connect(DB) as db_connection:
@@ -151,6 +205,12 @@ def transact(account:str, date:datetime.date, amount:float, DC:str = "D") -> Non
         amount(float): Amount to debit/credit.
         DC(str): Indicates debit('D') or credit('C').
     '''
+    try:
+        validate_amount(amount)
+    except TypeError as e:
+        logger.error(e)
+        return
+    
     with sql.connect(DB) as db_connection:
         db_cursor = db_connection.cursor()
         try:
