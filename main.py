@@ -145,6 +145,7 @@ def add_customer(name:str, balance:float = 0.0) -> None:
             logger.info(f"Added {name}, account number: {account}, balance = {balance}")
             db_connection.commit()
         except sql.Error as e:
+            db_connection.rollback()
             logger.error(f"Failed to add account {account}: {e}")
 
 def update_customer(account:str, new_name:str) -> None:
@@ -173,6 +174,7 @@ def update_customer(account:str, new_name:str) -> None:
             logger.info(f"Account {account} name updated to {new_name}")
             db_connection.commit()
         except sql.Error as e:
+            db_connection.rollback()
             logger.error(f"Failed to update account {account}: {e}")
 
 def delete_customer(account:str) -> None:
@@ -193,6 +195,7 @@ def delete_customer(account:str) -> None:
             logger.info(f"Account {account} deleted")
             db_connection.commit()
         except sql.Error as e:
+            db_connection.rollback()
             logger.error(f"Failed to delete account {account}: {e}")
 
 def transact(account:str, date:datetime.date, amount:float, DC:str = "D") -> None:
@@ -233,6 +236,7 @@ def transact(account:str, date:datetime.date, amount:float, DC:str = "D") -> Non
 
             db_connection.commit()
         except sql.Error as e:
+            db_connection.rollback()
             logger.error(f"Failed to load transaction: {e}")
 
 def display_customers(*args) -> None:
