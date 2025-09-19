@@ -455,6 +455,7 @@ def edit_customer_popup() -> None:
         display_customers()
         edit_customer_search_entry.delete(0, tk.END)
         edit_customer_new_name_entry.delete(0, tk.END)
+        edit_customer_search_entry.focus_set()
 
     def on_entry_text_change(*args):
         search_term = edit_customer_search_var.get()
@@ -522,6 +523,7 @@ def delete_customer_popup() -> None:
         delete_customer(delete_customer_search_entry.get())
         display_customers()
         delete_customer_search_entry.delete(0, tk.END)
+        delete_customer_search_entry.focus_set()
 
     def on_entry_text_change(*args):
         search_term = delete_customer_search_var.get()
@@ -610,6 +612,9 @@ def new_transaction_popup() -> None:
 
     def add_transaction_command():
         transact(new_transaction_account_entry_var.get(), new_transcation_date_entry.get_date(), new_transaction_amount_entry.get(), "D" if new_transaction_type_combobox.get() == "Debit" else "C")
+        new_transaction_account_entry_var.set("")
+        new_transaction_amount_entry.delete(0, tk.END)
+        new_transaction_amount_entry.focus_set()
         display_customers()
         display_transactions()
 
