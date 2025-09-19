@@ -491,6 +491,7 @@ def edit_customer_popup() -> None:
     edit_customer_search_listbox.bind("<<ListboxSelect>>", on_listbox_select)
     edit_customer_new_name_label = ttk.Label(popup, text="New name:")
     edit_customer_new_name_entry = ttk.Entry(popup)
+    edit_customer_new_name_entry.bind("<Return>", edit_customer_command)
     edit_customer_button = ttk.Button(popup, text="Edit customer details", command=edit_customer_command)
 
     edit_customer_search_label.pack()
