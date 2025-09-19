@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter.scrolledtext import ScrolledText
 import sqlite3 as sql
-from logging import getLogger, DEBUG, Formatter, StreamHandler
+from logging import getLogger, DEBUG, INFO, Formatter, StreamHandler, Handler
 from datetime import datetime
 import random
 import string
@@ -19,6 +20,20 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 DB = "database.db"
+
+class TextHandler(Handler):
+    def __init__(self, text_widget):
+        super().__init__()
+        self.text_widget = text_widget
+
+    def emit(self, record):
+        msg = self.format(record)
+        def append():
+            self.text_widget.configure(state='normal')
+            self.text_widget.insert('end', msg + '\n')
+            self.text_widget.configure(state='disabled')
+            self.text_widget.yview('end')
+        self.text_widget.after(0, append)
 
 def CREATE_DEFAULT_TABLES() -> None:
     '''
@@ -667,6 +682,11 @@ customer_sort_by_combobox.bind("<<ComboboxSelected>>", display_customers)
 customer_sort_from_combobox = ttk.Combobox(customer_pane, values=["Low - High", "High - Low"], state="readonly")
 customer_sort_from_combobox.current(0)
 customer_sort_from_combobox.bind("<<ComboboxSelected>>", display_customers)
+customer_output = ScrolledText(customer_pane, state="disabled", height=10)
+customer_output_handler = TextHandler(customer_output)
+customer_output_handler.setLevel(INFO)
+customer_output_handler.setFormatter(formatter)
+logger.addHandler(customer_output_handler)
 
 transaction_tree = ttk.Treeview(transactions_pane, show="headings")
 transaction_tree_scrollbar = ttk.Scrollbar(transactions_pane, orient="vertical", command=transaction_tree.yview)
@@ -681,6 +701,11 @@ transaction_sort_by_combobox.bind("<<ComboboxSelected>>", display_transactions)
 transaction_sort_from_combobox = ttk.Combobox(transactions_pane, values=["Low - High", "High - Low"], state="readonly")
 transaction_sort_from_combobox.current(1)
 transaction_sort_from_combobox.bind("<<ComboboxSelected>>", display_transactions)
+transaction_output = ScrolledText(transactions_pane, state="disabled", height=10)
+transaction_output_handler = TextHandler(transaction_output)
+transaction_output_handler.setLevel(INFO)
+transaction_output_handler.setFormatter(formatter)
+logger.addHandler(transaction_output_handler)
 
 customer_search_label.pack()
 customer_search_input.pack()
@@ -689,6 +714,7 @@ customer_sort_by_combobox.pack()
 customer_sort_from_combobox.pack()
 customer_tree.pack(expand=True, fill=tk.BOTH)
 customer_tree_scollbar.pack(side="right", fill="y")
+customer_output.pack(fill="x", pady=10)
 
 transaction_search_label.pack()
 transaction_search_input.pack()
@@ -697,6 +723,7 @@ transaction_sort_by_combobox.pack()
 transaction_sort_from_combobox.pack()
 transaction_tree.pack(expand=True, fill=tk.BOTH)
 transaction_tree_scrollbar.pack(side="right", fill="y")
+transaction_output.pack(fill="x", pady=10)
 
 customer_tree.configure(yscrollcommand=customer_tree_scollbar.set)
 transaction_tree.configure(yscrollcommand=transaction_tree_scrollbar.set)
